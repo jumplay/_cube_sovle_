@@ -132,14 +132,15 @@ static const uint32_t _factorial[] = {
 #define factorial(x) _factorial[x]
 
 static const uint32_t rotation_idx[6][3] = {
-	{ 16 + 1, 16 + 2, 16 + 3 },
-	{  8 + 1,  8 + 2,  8 + 3 },
-	{  4 + 1,  4 + 2,  4 + 3 },
-	{  8 + 4 + 1,  8 + 4 + 2,  8 + 4 + 3 },
-	{ 16 + 4 + 1, 16 + 4 + 2, 16 + 4 + 3 },
-	{ 16 + 8 + 1, 16 + 8 + 2, 16 + 8 + 3 },
+	{ 16 + 1, 16 + 2, 16 + 3 },					// x+
+	{  8 + 1,  8 + 2,  8 + 3 },					// y+
+	{  4 + 1,  4 + 2,  4 + 3 },					// z+
+	{  8 + 4 + 1,  8 + 4 + 2,  8 + 4 + 3 },		// x-
+	{ 16 + 4 + 1, 16 + 4 + 2, 16 + 4 + 3 },		// y-
+	{ 16 + 8 + 1, 16 + 8 + 2, 16 + 8 + 3 },		// z-
 };
 
+//////////////////////////////////////////////////////
 static uint64_t*& vertex_pos_code_map() {
 	static uint64_t* _vpcm = 0;
 	return _vpcm;
@@ -153,6 +154,24 @@ static uint32_t*& vertex_pos_rotation_map() {
 }
 #define _VPRM vertex_pos_rotation_map()
 #define VPRM ((const uint32_t*)_VPRM)
+//////////////////////////////////////////////////////
+static uint64_t*& vertex_ort_code_map() {
+	static uint64_t* _vocm = 0;
+	return _vocm;
+}
+#define _VOCM vertex_ort_code_map()
+#define VOCM ((const uint64_t*)_VOCM)
+
+static uint32_t*& vertex_ort_rotation_map() {
+	static uint32_t* _vorm = 0;
+	return _vorm;
+}
+#define _VORM vertex_ort_rotation_map()
+#define VORM ((const uint32_t*)_VORM)
+//////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////////////////
+//vertex_pos
 
 // create permutation of [0, total), save in vp_code.
 template <uint32_t total, uint32_t shift>
@@ -391,8 +410,132 @@ void create_vertex_pos_rotation_map() {
 #	undef  _rotate
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+// vertex_ort
+
+#define vertex_ort_code_to_idx(code)	( (code        & 0xFF) * 2187 +		\
+										 ((code >>  8) & 0xFF) * 729  +		\
+										 ((code >> 16) & 0xFF) * 243  +		\
+										 ((code >> 24) & 0xFF) * 81   +		\
+										 ((code >> 32) & 0xFF) * 27   +		\
+										 ((code >> 40) & 0xFF) * 9    +		\
+										 ((code >> 48) & 0xFF) * 3    +		\
+										 ((code >> 56) & 0xFF)				\
+										)
+
+void create_vertex_ort_code_map() {
+	uint64_t x_m[256];
+	for (uint32_t i = 0; i < 256; i++) {
+		x_m[i] = (((i & 0x0003) << 24) | ((i & 0x000C) << 14) | ((i & 0x0030) << 4) | ((i & 0x00C0) >> 6));
+	}
+
+	_VOCM = new uint64_t[6561];
+	uint32_t idx = 0;
+	
+	for (uint32_t i = 0; i < (1 << 16); i++) {
+		if (((i >> 1) & 0x5555) & (i & 0x5555)) { continue; }
+		_VOCM[idx++] = ((x_m[i & 0x00ff] << 32) | x_m[i >> 8]);
+	}
+}
+
+void create_vertex_ort_rotation_map() {
+	// 00 - x
+	// 01 - y
+	// 10 - z
+	
+	uint8_t face[6] = { 0, 1, 2, 0, 1, 2 }; // x, y, z, -x, -y, -z
+	uint32_t refer[6][4] = {
+		{ 0, 2, 6, 3 },		// x
+		{ 1, 0, 3, 5 },		// y
+		{ 1, 4, 2, 0 },		// z
+		{ 1, 5, 7, 4 },		// -x
+		{ 2, 4, 7, 6 },		// -y
+		{ 6, 7, 5, 3 }		// -z
+	};
+
+	_VORM = new uint32_t[6561 << 5];
+
+	uint64_t code;
+	uint8_t* code_8 = (uint8_t*)& code;
+	uint8_t tmp;
+	for (uint32_t i = 0; i < 6; i++) {
+		uint8_t fc = face[i];
+		uint8_t* code_0 = code_8 + refer[i][0];
+		uint8_t* code_1 = code_8 + refer[i][1];
+		uint8_t* code_2 = code_8 + refer[i][2];
+		uint8_t* code_3 = code_8 + refer[i][3];
+		for (uint32_t j = 0; j < 6561; j++) {
+#			define _change_code_(x)														\
+				do {																	\
+					*code_##x = *code_##x == fc ? *code_##x : (~(*code_##x | fc)) & 3;	\
+				} while (0)
+
+			// 01
+			code = VOCM[j];
+			
+			do {
+				_change_code_(0);
+				_change_code_(1);
+				_change_code_(2);
+				_change_code_(3);
+
+				tmp = *code_0;
+				*code_0 = *code_3;
+				*code_3 = *code_2;
+				*code_2 = *code_1;
+				*code_1 = tmp;
+
+				_VORM[(j << 5) | rotation_idx[i][0]] = vertex_ort_code_to_idx(code);
+			} while (0);
+
+			// 10
+			code = VOCM[j];
+			do {
+				tmp = *code_0;
+				*code_0 = *code_2;
+				*code_2 = tmp;
+				tmp = *code_1;
+				*code_1 = *code_3;
+				*code_3 = tmp;
+
+				_VORM[(j << 5) | rotation_idx[i][1]] = vertex_ort_code_to_idx(code);
+			} while (0);
+
+			// 11
+			code = VOCM[j];
+			do {
+				_change_code_(0);
+				_change_code_(1);
+				_change_code_(2);
+				_change_code_(3);
+
+				tmp = *code_0;
+				*code_0 = *code_1;
+				*code_1 = *code_2;
+				*code_2 = *code_3;
+				*code_3 = tmp;
+
+				_VORM[(j << 5) | rotation_idx[i][2]] = vertex_ort_code_to_idx(code);
+			} while (0);
+#			undef  _change_code_
+		}
+	}
+}
+
 void create_rotation_map() {
 	create_vertex_pos_code_map();
 	create_vertex_pos_rotation_map();
+	
+	create_vertex_ort_code_map();
+	create_vertex_ort_rotation_map();
+
+	for (uint32_t i = 0; i < 6561; i++) {
+		printf(">%u\n", i);
+		uint64_t code = VOCM[i];
+		print_vertex((uint8_t*)& code);
+		code = VOCM[VORM[(i << 5) | rotation_idx[5][2]]];
+		print_vertex((uint8_t*)& code);
+	}
 
 }
+
