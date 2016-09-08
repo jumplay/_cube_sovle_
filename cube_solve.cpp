@@ -22,6 +22,7 @@
 //
 //
 //	edge code order: <0, xy> <1, yz> <2, zx> <3, -xy> <4, -yz> <5, -zx > <6, x-y> <7, y-z> <8, z-x> <9, -x-y> <10, -y-z> <11, -z-x>
+//
 //	                  ____8____
 //	                 /|       /|
 //	                4 9      1 3
@@ -543,7 +544,8 @@ void create_vertex_ort_rotation_map() {
 
 void create_edge_pos_rotation_map() {
 	_EPRM = new uint64_t[1 << 21];
-	uint64_t code32;
+	uint16_t code16;
+	uint32_t code32;
 	uint8_t* code_0 = (uint8_t*)& code32;
 	uint8_t* code_1 = code_0 + 1;
 	uint8_t* code_2 = code_0 + 2;
@@ -555,7 +557,7 @@ void create_edge_pos_rotation_map() {
 
 #		define _set_map_(x,a,b,c,d)							\
 				do {										\
-					_EPRM[(code32 << 5) | x] =				\
+					_EPRM[(code16 << 5) | x] =				\
 						((uint64_t)*code_0 << (4 * a))	|	\
 						((uint64_t)*code_1 << (4 * b))	|	\
 						((uint64_t)*code_2 << (4 * c))	|	\
@@ -564,6 +566,8 @@ void create_edge_pos_rotation_map() {
 				} while (0)
 		do {
 			code32 = x;
+			code16 = (uint16_t)*code_0 | ((uint16_t)*code_1 << 4) | ((uint16_t)*code_2 << 8) | ((uint16_t)*code_3 << 12);
+
 			tmp = *code_0;
 			*code_0 = *code_3;
 			*code_3 = *code_2;
@@ -581,6 +585,8 @@ void create_edge_pos_rotation_map() {
 
 		do {
 			code32 = x;
+			code16 = (uint16_t)*code_0 | ((uint16_t)*code_1 << 4) | ((uint16_t)*code_2 << 8) | ((uint16_t)*code_3 << 12);
+
 			tmp = *code_0;
 			*code_0 = *code_2;
 			*code_2 = tmp;
@@ -598,6 +604,8 @@ void create_edge_pos_rotation_map() {
 
 		do {
 			code32 = x;
+			code16 = (uint16_t)*code_0 | ((uint16_t)*code_1 << 4) | ((uint16_t)*code_2 << 8) | ((uint16_t)*code_3 << 12);
+
 			tmp = *code_0;
 			*code_0 = *code_1;
 			*code_1 = *code_2;
@@ -678,6 +686,15 @@ void create_rotation_map() {
 	create_vertex_ort_rotation_map();
 
 	create_edge_pos_rotation_map();
+
+	uint64_t code = 0;
+	for (uint64_t i = 0; i < 12; i++) {
+		code |= (i << (i * 4));
+	}
+
+	print_edge(code);
+	uint64_t code_new = edge_rotate(code, rotation_idx[5][0]);
+	print_edge(code_new);
 
 }
 
