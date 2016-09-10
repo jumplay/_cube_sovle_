@@ -1,4 +1,4 @@
 default:
-	g++ main.cpp cube_solve.cpp
+	g++ main.cpp code_rotate.cpp
 clear:
 	rm -f *.o *.out
