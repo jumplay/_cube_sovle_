@@ -13,19 +13,14 @@ void print_vertex(uint8_t* code) {
 	printf("\t %u         %u\n", (uint32_t)code[6], (uint32_t)code[3]);
 }
 
-void print_edge(uint64_t code) {
-	uint32_t code_12[12];
-	for (uint32_t i = 0; i < 12; i++) {
-		code_12[i] = code & 0x0F;
-		code >>= 4;
-	}
+void print_edge(uint8_t* code) {
 
-	printf("\t    ___%2u____\n", code_12[8]);
+	printf("\t    ___%2u____\n", code[8]);
 	printf("\t   /|       /|\n");
-	printf("\t %2u %-2u    %2u %-2u\n", code_12[4], code_12[9], code_12[1], code_12[3]);
-	printf("\t /__|_%-2u__/  |\n", code_12[2]);
-	printf("\t |  |___%2u|__|\n", code_12[11]);
-	printf("\t%2u  /     %-2u /\n", code_12[6], code_12[0]);
-	printf("\t | %-2u     |%2u\n", code_12[10], code_12[7]);
-	printf("\t |/__%2u___|/\n", code_12[5]);
+	printf("\t %2u %-2u    %2u %-2u\n", code[4], code[9], code[1], code[3]);
+	printf("\t /__|_%-2u__/  |\n", code[2]);
+	printf("\t |  |___%2u|__|\n", code[11]);
+	printf("\t%2u  /     %-2u /\n", code[6], code[0]);
+	printf("\t | %-2u     |%2u\n", code[10], code[7]);
+	printf("\t |/__%2u___|/\n", code[5]);
 }

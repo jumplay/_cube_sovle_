@@ -193,7 +193,7 @@ static uint32_t*& edge_ort_rotation_map() {
 	return _eorm;
 }
 #define _EORM edge_ort_rotation_map()
-#define EORM ((const uint64_t*)_EORM)
+#define EORM ((const uint32_t*)_EORM)
 //////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////
@@ -251,6 +251,78 @@ uint32_t vertex_pos_code_to_idx(uint64_t code) {
 #	undef  _c_
 	
 	return idx;
+}
+
+uint32_t* create_vertex_pos_rotation_map_x() {
+	uint32_t cnt = factorial(8);
+	uint32_t *X_VPRM = new uint32_t[cnt << 5];
+	
+	uint64_t code;
+	uint8_t* c_p[8];
+	uint8_t tmp;
+	uint32_t idx;
+	for (uint32_t i = 0; i < 8; i++) {
+		c_p[i] = ((uint8_t*)& code) + i;
+	}
+
+	for (uint32_t i = 0; i < cnt; i++) {
+#		define _set_1_(x,a,b,c,d)										\
+					do {												\
+						code = VPCM[i];									\
+						tmp = *c_p[a];									\
+						*c_p[a] = *c_p[d];								\
+						*c_p[d] = *c_p[c];								\
+						*c_p[c] = *c_p[b];								\
+						*c_p[b] = tmp;									\
+						idx = vertex_pos_code_to_idx(code);				\
+						X_VPRM[(i << 5) | rotation_idx[x][0]] = idx;	\
+					} while (0)
+
+#		define _set_2_(x,a,b,c,d)										\
+					do {												\
+						code = VPCM[i];									\
+						tmp = *c_p[a];									\
+						*c_p[a] = *c_p[c];								\
+						*c_p[c] = tmp;									\
+						tmp = *c_p[b];									\
+						*c_p[b] = *c_p[d];								\
+						*c_p[d] = tmp;									\
+						idx = vertex_pos_code_to_idx(code);				\
+						X_VPRM[(i << 5) | rotation_idx[x][1]] = idx;	\
+					} while (0)
+
+#		define _set_3_(x,a,b,c,d)										\
+					do {												\
+						code = VPCM[i];									\
+						tmp = *c_p[a];									\
+						*c_p[a] = *c_p[b];								\
+						*c_p[b] = *c_p[c];								\
+						*c_p[c] = *c_p[d];								\
+						*c_p[d] = tmp;									\
+						idx = vertex_pos_code_to_idx(code);				\
+						X_VPRM[(i << 5) | rotation_idx[x][2]] = idx;	\
+					} while (0)
+
+#		define _set_(x,a,b,c,d)								\
+					do {									\
+						_set_1_(x, a, b, c, d);				\
+						_set_2_(x, a, b, c, d);				\
+						_set_3_(x, a, b, c, d);				\
+					} while (0)
+
+		_set_(0, 0, 2, 6, 3);
+		_set_(1, 0, 3, 5, 1);
+		_set_(2, 0, 1, 4, 2);
+		_set_(3, 7, 4, 1, 5);
+		_set_(4, 7, 6, 2, 4);
+		_set_(5, 7, 5, 3, 6);
+
+#		undef  _set_
+#		undef  _set_1_
+#		undef  _set_2_
+#		undef  _set_3_
+	}
+	return X_VPRM;
 }
 
 void create_vertex_pos_rotation_map() {
@@ -548,6 +620,9 @@ void create_vertex_ort_rotation_map() {
 	}
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+//edge pos
+
 void create_edge_pos_rotation_map() {
 	_EPRM = new uint64_t[1 << 21];
 	uint16_t code16;
@@ -570,6 +645,7 @@ void create_edge_pos_rotation_map() {
 						((uint64_t)*code_3 << (4 * d))		\
 						;									\
 				} while (0)
+		
 		do {
 			code32 = x;
 			code16 = (uint16_t)*code_0 | ((uint16_t)*code_1 << 4) | ((uint16_t)*code_2 << 8) | ((uint16_t)*code_3 << 12);
@@ -629,7 +705,7 @@ void create_edge_pos_rotation_map() {
 	}
 }
 
-uint64_t edge_rotate(uint64_t code, uint32_t rx) {
+uint64_t edge_pos_rotate(uint64_t code, uint32_t rx) {
 	uint64_t mask;
 	uint32_t c32;
 #	define _set_mask_(a,b,c,d)							\
@@ -683,40 +759,47 @@ uint64_t edge_rotate(uint64_t code, uint32_t rx) {
 #	undef  _c32_
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////
+//edge ort
+
 void create_edge_ort_rotation_map() {
 	_EORM = new uint32_t[1 << 17];
 
 	uint32_t code;
+	uint32_t mask;
 
 	for (uint32_t i = 0; i < (1 << 12); i++) {
-#		define _set_1_(x,a,b,c,d)										\
-					do{													\
-						code = i;										\
-						code =	((((code >> a) & 1) ^ 1) << b) |		\
-								((((code >> b) & 1) ^ 1) << c) |		\
-								((((code >> c) & 1) ^ 1) << d) |		\
-								((((code >> d) & 1) ^ 1) << a) ;		\
-						_EORM[(i << 5) | rotation_idx[x][0]] = code;	\
+#		define _set_1_(x,a,b,c,d)																	\
+					do{																				\
+						code = i;																	\
+						code =	((((code >> a) & 1) ^ 1) << b) |									\
+								((((code >> b) & 1) ^ 1) << c) |									\
+								((((code >> c) & 1) ^ 1) << d) |									\
+								((((code >> d) & 1) ^ 1) << a) ;									\
+						mask = (~((1 << a) | (1 << b) | (1 << c) | (1 << d))) & ((1 << 12) - 1);	\
+						_EORM[(i << 5) | rotation_idx[x][0]] = code | mask;							\
 					} while (0)
 
-#		define _set_2_(x,a,b,c,d)										\
-					do{													\
-						code = i;										\
-						code =	((((code >> a) & 1) ^ 1) << c) |		\
-								((((code >> c) & 1) ^ 1) << a) |		\
-								((((code >> b) & 1) ^ 1) << d) |		\
-								((((code >> d) & 1) ^ 1) << b) ;		\
-						_EORM[(i << 5) | rotation_idx[x][1]] = code;	\
+#		define _set_2_(x,a,b,c,d)																	\
+					do{																				\
+						code = i;																	\
+						code =	(((code >> a) & 1) << c) |											\
+								(((code >> c) & 1) << a) |											\
+								(((code >> b) & 1) << d) |											\
+								(((code >> d) & 1) << b) ;											\
+						mask = (~((1 << a) | (1 << b) | (1 << c) | (1 << d))) & ((1 << 12) - 1);	\
+						_EORM[(i << 5) | rotation_idx[x][1]] = code | mask;							\
 					} while (0)
 
-#		define _set_3_(x,a,b,c,d)										\
-					do{													\
-						code = i;										\
-						code =	((((code >> a) & 1) ^ 1) << d) |		\
-								((((code >> b) & 1) ^ 1) << a) |		\
-								((((code >> c) & 1) ^ 1) << b) |		\
-								((((code >> d) & 1) ^ 1) << c) ;		\
-						_EORM[(i << 5) | rotation_idx[x][2]] = code;	\
+#		define _set_3_(x,a,b,c,d)																	\
+					do{																				\
+						code = i;																	\
+						code =	((((code >> a) & 1) ^ 1) << d) |									\
+								((((code >> b) & 1) ^ 1) << a) |									\
+								((((code >> c) & 1) ^ 1) << b) |									\
+								((((code >> d) & 1) ^ 1) << c) ;									\
+						mask = (~((1 << a) | (1 << b) | (1 << c) | (1 << d))) & ((1 << 12) - 1);	\
+						_EORM[(i << 5) | rotation_idx[x][2]] = code | mask;							\
 					} while (0)
 
 #		define _set_(x,a,b,c,d)											\
@@ -732,12 +815,41 @@ void create_edge_ort_rotation_map() {
 		_set_(3,  3, 11,  9,  8);
 		_set_(4,  4,  9, 10,  6);
 		_set_(5,  5, 10, 11,  7);
+
+#		undef  _set_
+#		undef  _set_1_
+#		undef  _set_2_
+#		undef  _set_3_
 	}
 }
 
 void create_rotation_map() {
 	create_vertex_pos_code_map();
 	create_vertex_pos_rotation_map();
+
+	uint32_t* X_VPRM = create_vertex_pos_rotation_map_x();
+
+#	if 0
+	for (uint32_t i = 0; i < factorial(8); i++) {
+		printf("%u\n", X_VPRM[(i << 5) | rotation_idx[0][0]]);
+	}
+#	endif
+
+	for (uint32_t i = 0; i < factorial(8); i++) {
+		uint32_t x = rotation_idx[5][2];
+		if (X_VPRM[(i << 5) | x] != VPRM[(i << 5) | x]) {
+			puts("------------------------------------------------");
+			printf(">%u\n", i);
+			uint64_t code = VPCM[i];
+			uint64_t code_1 = VPCM[VPRM[(i << 5) | x]];
+			uint64_t code_2 = VPCM[X_VPRM[(i << 5) | x]];
+
+			print_vertex((uint8_t*) &code);
+			print_vertex((uint8_t*) &code_1);
+			print_vertex((uint8_t*) &code_2);
+			
+		}
+	}
 	
 	create_vertex_ort_code_map();
 	create_vertex_ort_rotation_map();
