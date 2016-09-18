@@ -580,7 +580,7 @@ void create_edge_pos_rotation_map() {
 //edge ort
 
 uint32_t edge_ort_rotate(uint32_t code, uint32_t rx) {
-	return VORM[(code << 5) | rx];
+	return EORM[(code << 5) | rx];
 }
 
 void create_edge_ort_rotation_map() {
@@ -598,7 +598,7 @@ void create_edge_ort_rotation_map() {
 								((((code >> c) & 1) ^ 1) << d) |									\
 								((((code >> d) & 1) ^ 1) << a) ;									\
 						mask = (~((1 << a) | (1 << b) | (1 << c) | (1 << d))) & ((1 << 12) - 1);	\
-						_EORM[(i << 5) | rotation_idx[x][0]] = code | mask;							\
+						_EORM[(i << 5) | rotation_idx[x][0]] = code | (i & mask);					\
 					} while (0)
 
 #		define _set_2_(x,a,b,c,d)																	\
@@ -609,7 +609,7 @@ void create_edge_ort_rotation_map() {
 								(((code >> b) & 1) << d) |											\
 								(((code >> d) & 1) << b) ;											\
 						mask = (~((1 << a) | (1 << b) | (1 << c) | (1 << d))) & ((1 << 12) - 1);	\
-						_EORM[(i << 5) | rotation_idx[x][1]] = code | mask;							\
+						_EORM[(i << 5) | rotation_idx[x][1]] = code | (i & mask);					\
 					} while (0)
 
 #		define _set_3_(x,a,b,c,d)																	\
@@ -620,7 +620,7 @@ void create_edge_ort_rotation_map() {
 								((((code >> c) & 1) ^ 1) << b) |									\
 								((((code >> d) & 1) ^ 1) << c) ;									\
 						mask = (~((1 << a) | (1 << b) | (1 << c) | (1 << d))) & ((1 << 12) - 1);	\
-						_EORM[(i << 5) | rotation_idx[x][2]] = code | mask;							\
+						_EORM[(i << 5) | rotation_idx[x][2]] = code | (i & mask);					\
 					} while (0)
 
 #		define _set_(x,a,b,c,d)											\
