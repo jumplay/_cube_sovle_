@@ -1,7 +1,15 @@
 #include <stdio.h>
 #include <stdint.h>
 
-void print_vertex(uint8_t* code) {
+static uint8_t* edge_pos_64_2_12(uint64_t c, uint8_t* code) { 
+	for (uint32_t i = 0; i < 12; i++) {
+		code[i] = (c >> (i * 4)) & 0x0F;
+	}
+
+	return code;
+}
+
+static void print_vertex(uint8_t* code) {
 	printf("\t   %u_________%u\n", (uint32_t)code[4], (uint32_t)code[1]);
 	printf("\t   /|       /|\n");
 	printf("\t  / |      / |\n");
@@ -13,7 +21,7 @@ void print_vertex(uint8_t* code) {
 	printf("\t %u         %u\n", (uint32_t)code[6], (uint32_t)code[3]);
 }
 
-void print_edge(uint8_t* code) {
+static void print_edge(uint8_t* code) {
 
 	printf("\t    ___%2u____\n", code[8]);
 	printf("\t   /|       /|\n");
