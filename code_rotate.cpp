@@ -336,7 +336,7 @@ uint32_t vertex_ort_code_to_idx(uint64_t code) {
 }
 
 uint64_t vertex_ort_idx_to_code(uint32_t idx) {
-	return VPCM[idx];
+	return VOCM[idx];
 }
 
 void create_vertex_ort_code_map() {
