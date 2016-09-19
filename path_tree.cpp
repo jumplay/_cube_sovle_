@@ -1,137 +1,22 @@
 #include "code_rotate.h"
 #include "tools.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <algorithm>
 #include <time.h>
 #include <new>
 
-uint32_t search(uint8_t* buf, uint32_t l, uint32_t r, uint8_t* x) {
-	if (memcmp(buf + l * 19, x, 12) > 0) {
-		return (l << 1) | 1;
-	}
-	if (memcmp(buf + r * 19, x, 12) < 0) {
-		return ((r + 1) << 1) | 1;
-	}
-	if (l == r) {
-		return 0;
-	}
-
-	uint32_t m;
-	while (1) {
-		if (l == r - 1) {
-			if (!memcmp(buf + l * 19, x, 12)) {
-				return 0;
-			}
-			if (!memcmp(buf + l * 19, x, 12)) {
-				return 0;
-			}
-			return (r << 1) | 1;
-		}
-		m = (l + r) / 2;
-		if (memcmp(buf + m * 19, x, 12) > 0) {
-			r = m;
-		} else {
-			l = m;
-		}
-	}
-}
-
-void insert(uint8_t* buf, uint8_t* x, uint32_t pos, uint32_t len) {
-	if (pos < len) {
-		memmove(buf + (pos + 1) * 19, buf + pos * 19, (len - pos) * 19);
-	}
-	memcpy(buf + pos * 19, x, 19);
-}
-
-uint32_t xxx_1() {
-	uint64_t x_0 = (1ul << 4) | ( 2ul << 8) | (3ul << 12) | (4ul << 16) | (5ul << 20) | (6ul << 24) | (7ul << 28) | (8ul << 32) | (9ul << 36) | (10ul << 40) | (11ul << 44);
-
-	uint8_t* buf = new uint8_t[(1 << 24) * 19];
-	memset(buf, 0, (1 << 24) * 19);
-	memcpy(buf, &x_0, 6);
-
-	uint8_t x[19] = { 0 };
-
-	uint32_t len = 1;
-
-	time_t t_s = 0, t_e = 0;
-	time(&t_s);
-
-	for (uint32_t i = 0; i < 8; i++) {
-		for (uint32_t j = 0; j < len; j++) {
-			(buf + j * 19)[18] |= (1 << 7);
-		}
-		for (uint32_t j = 0; j < len; j++) {
-			if (!((buf + j * 19)[18] & (1 << 7))) { continue; }
-
-			(buf + j * 19)[18] &= ((1 << 7) - 1);
-			memcpy(x, buf + j * 19, 19);
-			uint64_t epc = (*(uint64_t*)x) & ((1ul << 48) - 1);
-			uint64_t path = (*(uint64_t*)(x + 12)) & ((1ul << 55) - 1);
-
-			for (uint32_t h = 0; h < 18; h++) {
-				uint32_t rx = rotation_idx[h / 3][h % 3];
-				uint64_t tx = edge_pos_rotate(epc, rx);
-				memcpy(x, &tx, 6);
-
-				uint32_t pos = search(buf, 0, len - 1, x);
-				if (pos) {
-					pos >>= 1;
-					//printf("pos: %u\n", pos);
-					tx = (path << 5) + rx;
-					memcpy(x + 12, &tx, 7);
-					insert(buf, x, pos, len);
-					len++;
-				}
-
-			}
-		}
-	}
-
-	time(&t_e);
-	
-	printf("time: %u\n", (uint32_t)(t_e - t_s));
-
-	printf("len: %u\n", len);
-
-	return 0;
-
-	for (uint32_t i = 0; i < len; i++) {
-		uint8_t  c12[12];
-		uint64_t c64 = *(uint64_t*)(buf + i * 19);
-		uint64_t r64 = *(uint64_t*)(buf + i * 19 + 12);
-
-		printf("<%u>------------------------------------\n", i);
-		printf("\t--0--\n");
-		edge_pos_64_2_12(x_0, c12);
-		print_edge(c12);
-		
-		uint32_t cnt = 0;
-		uint64_t ct = x_0;
-		for (uint32_t j = 10; j-- > 0; ) {
-			uint32_t rx = (r64 >> (j * 5)) & 0x1F;
-			if (!rx) { continue; }
-
-			printf("\t--0-%u-%u\n", cnt, rx);
-			
-			ct = edge_pos_rotate(ct, rx);
-			edge_pos_64_2_12(ct, c12);
-			print_edge(c12);
-
-			cnt++;
-		}
-		printf("\t--1----\n");
-		edge_pos_64_2_12(c64, c12);
-		print_edge(c12);
-	}
-
-	return 0;
-
-}
-
 #define PCBN 12
 #define PB   5
+
+int cmpr(const void* a, const void* b) {
+	return memcmp(*(uint8_t**)a, *(uint8_t**)b, PCBN);
+}
+bool cmpr_s(const uint8_t* a, const uint8_t* b) {
+	return memcmp(a, b, PCBN) < 0;
+}
 
 class path_t {
 	uint8_t* buf;
@@ -177,7 +62,47 @@ public:
 		_size = l;
 	}
 
-	void sort_and_clean() {
+	void fix(uint8_t** sbp) {
+
+		for (uint32_t i = 0; i < _cnt; i++) {
+			sbp[i] = buf + i * tbn;
+		}
+
+		std::sort(sbp, sbp + _cnt, cmpr_s);
+
+#		if 0
+		for (uint32_t i = 1; i < _cnt; i++) {
+			if (memcmp(sbp[i - 1], sbp[i], PCBN) > 0) {
+				printf("bbbbbbbbbbb");
+				getchar();
+			}
+		}
+#		endif
+
+		uint8_t* buf_2;
+		try {
+			buf_2 = new uint8_t[_cnt * tbn];
+			_size = _cnt;
+		} catch(std::bad_alloc& ba) {
+			printf("error: <fix> [%s]\n", ba.what());
+			getchar();
+		}
+
+		memcpy(buf_2, sbp[0], tbn);
+		uint32_t cnt = 1;
+
+		for (uint32_t i = 1; i < _cnt; i++) {
+			if (!memcmp(sbp[i - 1], sbp[i], PCBN)) {
+				continue;
+			}
+			memcpy(buf_2 + cnt * tbn, sbp[i], tbn);
+			cnt++;
+		}
+
+		printf("fix p_x[%u], cnt: %u -> %u\n", pd, _cnt, cnt);
+
+		_cnt = cnt;
+		buf = buf_2;
 	}
 	
 	void append(const uint8_t* x, uint64_t path = 0) {
@@ -272,7 +197,6 @@ void path_init() {
 
 }
 
-
 const uint8_t* rotate(const uint8_t* xi, uint8_t* xo, uint32_t rx) {
 	*(uint64_t*)xo        =           edge_pos_rotate(   *(uint64_t*)xi      ,  rx);
 	*(uint16_t*)(xo + 6)  = (uint16_t)edge_ort_rotate(   *(uint16_t*)(xi + 6),  rx);
@@ -300,11 +224,15 @@ void check() {
 	}
 }
 
+#define MAX_TNB 19
+
 uint32_t xxx() {
 	uint8_t* buf_a = 0;
+	uint8_t** sbp;
 	const uint32_t BCN = 1 << 28;
 	try {
-		buf_a = new uint8_t[BCN];
+		buf_a = new uint8_t[BCN * MAX_TNB];
+		sbp = new uint8_t*[BCN];
 	} catch(std::bad_alloc& bd) {
 		printf("error: %s\n", bd.what());
 	}
@@ -313,21 +241,21 @@ uint32_t xxx() {
 
 	uint8_t xx[19];
 
-	for (uint32_t i = 1; i <= 1; i++) {
+	time_t t_s, t_e;
+
+	for (uint32_t i = 1; i <= 10; i++) {
 		path_t& p_xi = p_x[i - 1];
 		path_t& p_xo = p_x[i];
 		p_xo.alloc(buf_a, BCN);
 
 		uint32_t cnt = p_xi.cnt();
+
+		t_s = time(NULL);
 		for (uint32_t j = 0; j < cnt; j++) {
 			const uint8_t* xi = p_xi.get_x(j);
+
 			for (uint32_t h = 0; h < RCN; h++) {
 				const uint8_t* xo = rotate(xi, xx, rx[h]);
-
-#				if 0
-				printf(">%u\n", h);
-				print_cube_x(xo);
-#				endif
 
 				if (!is_exist(xo, i)) {
 					uint64_t path = p_xi.get_path(i);
@@ -336,9 +264,12 @@ uint32_t xxx() {
 				}
 			}
 		}
-		p_xo.sort_and_clean();
-		p_xo.re_alloc();
-	}
+		t_e = time(NULL);
+		printf("\ttime: %u\n", (uint32_t)difftime(t_e, t_s));
 
-	check();
+		t_s = time(NULL);
+		p_xo.fix(sbp);
+		t_e = time(NULL);
+		printf("\ttime: %u\n", (uint32_t)difftime(t_e, t_s));
+	}
 }
