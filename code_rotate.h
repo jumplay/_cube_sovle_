@@ -29,14 +29,36 @@ static const uint32_t rotation_idx[6][3] = {
 
 void create_rotation_map();
 
-uint32_t vertex_pos_code_to_idx(uint64_t code);
-uint64_t vertex_pos_idx_to_code(uint32_t idx);
+////////////////////////////////////////////////////////////////////////////////////////////
+#define RCN 18
+#define PHMASK (0x1F)
+#define PHBN	5
 
-uint32_t vertex_ort_code_to_idx(uint64_t code);
-uint64_t vertex_ort_idx_to_code(uint32_t idx);
+static uint32_t rx[RCN + 1];
+static void init_rx() {
+	for (uint32_t i = 0; i < RCN; i++) {
+		rx[i + 1] = rotation_idx[i / 3][i % 3];
+	}
+}
+static uint32_t _init_rx_ = (init_rx(), 1);
 
-uint32_t vertex_pos_rotate(uint32_t idx, uint32_t rx);
-uint32_t vertex_ort_rotate(uint32_t idx, uint32_t rx);
+struct ccd_t {
+	uint16_t vpc;
+	uint16_t voc;
+	uint16_t eoc;
+	uint16_t nil;
+	uint64_t epc;
 
-uint64_t edge_pos_rotate(uint64_t code, uint32_t rx);
-uint32_t edge_ort_rotate(uint32_t code, uint32_t rx);
+	ccd_t(): vpc(0), voc(0), eoc(0), nil(0) {
+		epc =	(0ul <<  0) | (1ul <<  4) | (2ul  <<  8) | (3ul  << 12) |	\
+				(4ul << 16) | (5ul << 20) | (6ul  << 24) | (7ul  << 28) |	\
+				(8ul << 32) | (9ul << 36) | (10ul << 40) | (11ul << 44);
+	}
+
+	ccd_t(ccd_t& xx): vpc(xx.vpc), voc(xx.voc), eoc(xx.eoc), nil(xx.nil), epc(xx.epc) {}
+
+	ccd_t& go(uint64_t path);
+	int64_t cmpr(uint64_t p_a, uint64_t p_b);
+
+	void print(uint32_t x) const;
+};

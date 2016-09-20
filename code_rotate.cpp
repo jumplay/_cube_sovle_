@@ -130,59 +130,41 @@
 //////////////////////////////////////////////////////
 // vertex pos
 
-static uint64_t*& vertex_pos_code_map() {
-	static uint64_t* _vpcm = 0;
-	return _vpcm;
-}
-#define _VPCM vertex_pos_code_map()
+static uint64_t* _vpcm = 0;
+#define _VPCM _vpcm
 #define VPCM ((const uint64_t*)_VPCM)
 
-static uint32_t*& vertex_pos_rotation_map() {
-	static uint32_t* _vprm = 0;
-	return _vprm;
-}
-#define _VPRM vertex_pos_rotation_map()
+static uint32_t* _vprm = 0;
+#define _VPRM _vprm
 #define VPRM ((const uint32_t*)_VPRM)
 //////////////////////////////////////////////////////
 // vertex ort
 
-static uint64_t*& vertex_ort_code_map() {
-	static uint64_t* _vocm = 0;
-	return _vocm;
-}
-#define _VOCM vertex_ort_code_map()
+static uint64_t* _vocm = 0;
+#define _VOCM _vocm
 #define VOCM ((const uint64_t*)_VOCM)
 
-static uint32_t*& vertex_ort_rotation_map() {
-	static uint32_t* _vorm = 0;
-	return _vorm;
-}
-#define _VORM vertex_ort_rotation_map()
+static uint32_t* _vorm = 0;
+#define _VORM _vorm
 #define VORM ((const uint32_t*)_VORM)
 //////////////////////////////////////////////////////
 // edge pos
 
-static uint64_t*& edge_pos_rotation_map() {
-	static uint64_t* _eprm = 0;
-	return _eprm;
-}
-#define _EPRM edge_pos_rotation_map()
+static uint64_t* _eprm = 0;
+#define _EPRM _eprm
 #define EPRM ((const uint64_t*)_EPRM)
 //////////////////////////////////////////////////////
 // edge ort
 
-static uint32_t*& edge_ort_rotation_map() {
-	static uint32_t* _eorm = 0;
-	return _eorm;
-}
-#define _EORM edge_ort_rotation_map()
+static uint32_t* _eorm = 0;
+#define _EORM _eorm
 #define EORM ((const uint32_t*)_EORM)
 //////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 //vertex_pos
 
-uint32_t vertex_pos_rotate(uint32_t idx, uint32_t rx) {
+inline uint32_t vertex_pos_rotate(uint32_t idx, uint32_t rx) {
 	return VPRM[(idx << 5) | rx];
 }
 
@@ -318,7 +300,7 @@ void create_vertex_pos_rotation_map() {
 /////////////////////////////////////////////////////////////////////////////////////////////
 // vertex_ort
 
-uint32_t vertex_ort_rotate(uint32_t idx, uint32_t rx) {
+inline uint32_t vertex_ort_rotate(uint32_t idx, uint32_t rx) {
 	return VORM[(idx << 5) | rx];
 }
 
@@ -441,7 +423,7 @@ void create_vertex_ort_rotation_map() {
 /////////////////////////////////////////////////////////////////////////////////////////////
 //edge pos
 
-uint64_t edge_pos_rotate(uint64_t code, uint32_t rx) {
+inline uint64_t edge_pos_rotate(uint64_t code, uint32_t rx) {
 	uint64_t mask;
 	uint32_t c32;
 #	define _set_mask_(a,b,c,d)							\
@@ -579,7 +561,7 @@ void create_edge_pos_rotation_map() {
 /////////////////////////////////////////////////////////////////////////////////////////////
 //edge ort
 
-uint32_t edge_ort_rotate(uint32_t code, uint32_t rx) {
+inline uint32_t edge_ort_rotate(uint32_t code, uint32_t rx) {
 	return EORM[(code << 5) | rx];
 }
 
@@ -656,3 +638,95 @@ void create_rotation_map() {
 	create_edge_ort_rotation_map();
 }
 
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+static uint8_t* edge_pos_64_2_12(uint64_t c, uint8_t* code) { 
+	for (uint32_t i = 0; i < 12; i++) {
+		code[i] = (c >> (i * 4)) & 0x0F;
+	}
+
+	return code;
+}
+
+static uint8_t* edge_ort_x_2_12(uint32_t x, uint8_t* code) {
+	for (uint32_t i = 0; i < 12; i++) {
+		code[i] = (x >> i) & 1;
+	}
+	return code;
+}
+
+static uint8_t* vertex_pos_x_2_8(uint32_t x, uint8_t* code) {
+	*(uint64_t*) code = vertex_pos_idx_to_code(x);
+	return code;
+}
+
+static uint8_t* vertex_ort_x_2_8(uint32_t x, uint8_t* code) {
+	*(uint64_t*) code = vertex_ort_idx_to_code(x);
+	return code;
+}
+
+ccd_t& ccd_t::go(uint64_t path) {
+	for (uint32_t pi ; pi = path & PHMASK; path >>= PHBN) {
+		this->vpc = vertex_pos_rotate(this->vpc, rx[pi]);
+		this->voc = vertex_ort_rotate(this->voc, rx[pi]);
+		this->eoc = edge_ort_rotate(this->eoc, rx[pi]);
+		//this->epc = edge_pos_rotate(this->epc, rx[pi]);
+	}
+}
+
+int64_t ccd_t::cmpr(uint64_t p_a, uint64_t p_b) {
+	ccd_t ccd_a(*this);
+	ccd_t ccd_b(*this);
+
+	uint64_t path = p_a;
+	for (uint32_t pi; pi = path & PHMASK; path >>= PHBN) {
+		ccd_a.vpc = vertex_pos_rotate(ccd_a.vpc, rx[pi]);
+		ccd_a.voc = vertex_ort_rotate(ccd_a.voc, rx[pi]);
+		ccd_a.eoc = edge_ort_rotate(ccd_a.eoc, rx[pi]);
+	}
+
+	path = p_b;
+	for (uint32_t pi; pi = path & PHMASK; path >>= PHBN) {
+		ccd_b.vpc = vertex_pos_rotate(ccd_b.vpc, rx[pi]);
+		ccd_b.voc = vertex_ort_rotate(ccd_b.voc, rx[pi]);
+		ccd_b.eoc = edge_ort_rotate(ccd_b.eoc, rx[pi]);
+	}
+
+	int64_t rtn = (int64_t)(*(uint64_t*)&ccd_a - *(uint64_t*)&ccd_b);
+	if (rtn) { return rtn; }
+
+	path = p_a;
+	for (uint32_t pi; pi = path & PHMASK; path >>= PHBN) {
+		ccd_a.epc = edge_pos_rotate(ccd_a.epc, rx[pi]);
+	}
+	path = p_b;
+	for (uint32_t pi; pi = path & PHMASK; path >>= PHBN) {
+		ccd_b.epc = edge_pos_rotate(ccd_b.epc, rx[pi]);
+	}
+
+	return (int64_t)(ccd_a.epc - ccd_b.epc);
+}
+
+void ccd_t::print(uint32_t x) const {
+	uint8_t code[12];
+
+	if (x & 1) {
+		vertex_pos_x_2_8(this->vpc, code);
+		print_vertex(code);
+	}
+
+	if (x & 2) {
+		vertex_ort_x_2_8(this->voc, code);
+		print_vertex(code);
+	}
+
+	if (x & 4) {
+		edge_ort_x_2_12(this->eoc, code);
+		print_edge(code);
+	}
+
+	if (x & 8) {
+		edge_pos_64_2_12(this->epc, code);
+		print_edge(code);
+	}
+}

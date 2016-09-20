@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#if 0
 static uint8_t* edge_pos_64_2_12(uint64_t c, uint8_t* code) { 
 	for (uint32_t i = 0; i < 12; i++) {
 		code[i] = (c >> (i * 4)) & 0x0F;
@@ -25,6 +26,7 @@ static uint8_t* vertex_ort_x_2_8(uint32_t x, uint8_t* code) {
 	*(uint64_t*) code = vertex_ort_idx_to_code(x);
 	return code;
 }
+#endif
 
 static void print_vertex(const uint8_t* code) {
 	printf("\t   %u_________%u\n", (uint32_t)code[4], (uint32_t)code[1]);
@@ -50,31 +52,3 @@ static void print_edge(const uint8_t* code) {
 	printf("\t |/__%2u___|/\n", code[5]);
 }
 
-static void print_cube_x(const uint8_t* st, uint32_t x = (8 | 4 | 2 | 1)) {
-	uint64_t epx = (*(const uint64_t*)st) & ((1ul << 48) - 1);
-	uint32_t eox = *(const uint16_t*)(st + 6);
-	uint32_t vpx = *(const uint16_t*)(st + 8);
-	uint32_t vox = *(const uint16_t*)(st + 10);
-
-	uint8_t code[12];
-
-	if (x & 1) {
-		edge_pos_64_2_12(epx, code);
-		print_edge(code);
-	}
-
-	if (x & 2) {
-		edge_ort_x_2_12(eox, code);
-		print_edge(code);
-	}
-
-	if (x & 4) {
-		vertex_pos_x_2_8(vpx, code);
-		print_vertex(code);
-	}
-
-	if (x & 8) {
-		vertex_ort_x_2_8(vox, code);
-		print_vertex(code);
-	}
-}
