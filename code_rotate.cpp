@@ -670,41 +670,15 @@ ccd_t& ccd_t::go(uint64_t path) {
 		this->vpc = vertex_pos_rotate(this->vpc, rx[pi]);
 		this->voc = vertex_ort_rotate(this->voc, rx[pi]);
 		this->eoc = edge_ort_rotate(this->eoc, rx[pi]);
-		//this->epc = edge_pos_rotate(this->epc, rx[pi]);
+		this->epc = edge_pos_rotate(this->epc, rx[pi]);
 	}
 }
 
-int64_t ccd_t::cmpr(uint64_t p_a, uint64_t p_b) {
-	ccd_t ccd_a(*this);
-	ccd_t ccd_b(*this);
-
-	uint64_t path = p_a;
-	for (uint32_t pi; pi = path & PHMASK; path >>= PHBN) {
-		ccd_a.vpc = vertex_pos_rotate(ccd_a.vpc, rx[pi]);
-		ccd_a.voc = vertex_ort_rotate(ccd_a.voc, rx[pi]);
-		ccd_a.eoc = edge_ort_rotate(ccd_a.eoc, rx[pi]);
-	}
-
-	path = p_b;
-	for (uint32_t pi; pi = path & PHMASK; path >>= PHBN) {
-		ccd_b.vpc = vertex_pos_rotate(ccd_b.vpc, rx[pi]);
-		ccd_b.voc = vertex_ort_rotate(ccd_b.voc, rx[pi]);
-		ccd_b.eoc = edge_ort_rotate(ccd_b.eoc, rx[pi]);
-	}
-
-	int64_t rtn = (int64_t)(*(uint64_t*)&ccd_a - *(uint64_t*)&ccd_b);
-	if (rtn) { return rtn; }
-
-	path = p_a;
-	for (uint32_t pi; pi = path & PHMASK; path >>= PHBN) {
-		ccd_a.epc = edge_pos_rotate(ccd_a.epc, rx[pi]);
-	}
-	path = p_b;
-	for (uint32_t pi; pi = path & PHMASK; path >>= PHBN) {
-		ccd_b.epc = edge_pos_rotate(ccd_b.epc, rx[pi]);
-	}
-
-	return (int64_t)(ccd_a.epc - ccd_b.epc);
+void ccd_t::one_step(uint32_t x) {
+	this->vpc = vertex_pos_rotate(this->vpc, x);
+	this->voc = vertex_ort_rotate(this->voc, x);
+	this->eoc = edge_ort_rotate(this->eoc, x);
+	this->epc = edge_pos_rotate(this->epc, x);
 }
 
 void ccd_t::print(uint32_t x) const {
@@ -729,4 +703,10 @@ void ccd_t::print(uint32_t x) const {
 		edge_pos_64_2_12(this->epc, code);
 		print_edge(code);
 	}
+}
+
+uint8_t* ccd_t::code(uint8_t* code) const {
+	*(uint32_t*)code = (((uint32_t)this->eoc) << 16) + this->voc;
+	*(uint64_t*)(code + 4) = (((uint64_t)this->epc) << 16) + this->vpc;
+	return code;
 }

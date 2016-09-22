@@ -30,9 +30,10 @@ static const uint32_t rotation_idx[6][3] = {
 void create_rotation_map();
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-#define RCN 18
-#define PHMASK (0x1F)
+#define RCN		18
+#define PHMASK	0x1F
 #define PHBN	5
+#define CBN		12
 
 static uint32_t rx[RCN + 1];
 static void init_rx() {
@@ -46,19 +47,21 @@ struct ccd_t {
 	uint16_t vpc;
 	uint16_t voc;
 	uint16_t eoc;
-	uint16_t nil;
 	uint64_t epc;
 
-	ccd_t(): vpc(0), voc(0), eoc(0), nil(0) {
+	ccd_t(): vpc(0), voc(0), eoc(0) {
 		epc =	(0ul <<  0) | (1ul <<  4) | (2ul  <<  8) | (3ul  << 12) |	\
 				(4ul << 16) | (5ul << 20) | (6ul  << 24) | (7ul  << 28) |	\
 				(8ul << 32) | (9ul << 36) | (10ul << 40) | (11ul << 44);
 	}
 
-	ccd_t(ccd_t& xx): vpc(xx.vpc), voc(xx.voc), eoc(xx.eoc), nil(xx.nil), epc(xx.epc) {}
+	ccd_t(ccd_t& xx): vpc(xx.vpc), voc(xx.voc), eoc(xx.eoc), epc(xx.epc) {}
 
 	ccd_t& go(uint64_t path);
-	int64_t cmpr(uint64_t p_a, uint64_t p_b);
+
+	void one_step(uint32_t x);
+
+	uint8_t* code(uint8_t* code) const;
 
 	void print(uint32_t x) const;
 };
