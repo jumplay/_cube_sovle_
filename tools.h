@@ -1,32 +1,6 @@
 #include <stdio.h>
 #include <stdint.h>
-
-#if 0
-static uint8_t* edge_pos_64_2_12(uint64_t c, uint8_t* code) { 
-	for (uint32_t i = 0; i < 12; i++) {
-		code[i] = (c >> (i * 4)) & 0x0F;
-	}
-
-	return code;
-}
-
-static uint8_t* edge_ort_x_2_12(uint32_t x, uint8_t* code) {
-	for (uint32_t i = 0; i < 12; i++) {
-		code[i] = (x >> i) & 1;
-	}
-	return code;
-}
-
-static uint8_t* vertex_pos_x_2_8(uint32_t x, uint8_t* code) {
-	*(uint64_t*) code = vertex_pos_idx_to_code(x);
-	return code;
-}
-
-static uint8_t* vertex_ort_x_2_8(uint32_t x, uint8_t* code) {
-	*(uint64_t*) code = vertex_ort_idx_to_code(x);
-	return code;
-}
-#endif
+#include <time.h>
 
 static void print_vertex(const uint8_t* code) {
 	printf("\t   %u_________%u\n", (uint32_t)code[4], (uint32_t)code[1]);
@@ -52,3 +26,15 @@ static void print_edge(const uint8_t* code) {
 	printf("\t |/__%2u___|/\n", code[5]);
 }
 
+struct time_count {
+	timespec _start;
+	timespec _end;
+
+	void start() { clock_gettime(CLOCK_MONOTONIC, &_start); }
+	void end() { clock_gettime(CLOCK_MONOTONIC, &_end); }
+	void end(const char* s) {
+		clock_gettime(CLOCK_MONOTONIC, &_end);
+		double t_s = ((double)(_end.tv_nsec - _start.tv_nsec) / 1000000 + (_end.tv_sec - _start.tv_sec) * 1000) / 1000;
+		printf("%s%.3f\n", s, t_s);
+	}
+};

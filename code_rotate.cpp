@@ -640,6 +640,11 @@ void create_rotation_map() {
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+const uint32_t* x_vprm() { return VPRM; }
+const uint32_t* x_vorm() { return VORM; }
+const uint64_t* x_eprm() { return EPRM; }
+const uint32_t* x_eorm() { return EORM; }
+
 static uint8_t* edge_pos_64_2_12(uint64_t c, uint8_t* code) { 
 	for (uint32_t i = 0; i < 12; i++) {
 		code[i] = (c >> (i * 4)) & 0x0F;

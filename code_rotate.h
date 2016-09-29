@@ -37,6 +37,7 @@ void create_rotation_map();
 
 static uint32_t rx[RCN + 1];
 static void init_rx() {
+	rx[0] = 0;
 	for (uint32_t i = 0; i < RCN; i++) {
 		rx[i + 1] = rotation_idx[i / 3][i % 3];
 	}
@@ -47,6 +48,7 @@ struct ccd_t {
 	uint16_t vpc;
 	uint16_t voc;
 	uint16_t eoc;
+	uint16_t nil;
 	uint64_t epc;
 
 	ccd_t(): vpc(0), voc(0), eoc(0) {
@@ -55,7 +57,10 @@ struct ccd_t {
 				(8ul << 32) | (9ul << 36) | (10ul << 40) | (11ul << 44);
 	}
 
-	ccd_t(ccd_t& xx): vpc(xx.vpc), voc(xx.voc), eoc(xx.eoc), epc(xx.epc) {}
+	ccd_t(ccd_t& xx) {
+		((uint64_t*)this)[0] = ((uint64_t*)&xx)[0];
+		((uint64_t*)this)[1] = ((uint64_t*)&xx)[1];
+	}
 
 	ccd_t& go(uint64_t path);
 
@@ -64,4 +69,13 @@ struct ccd_t {
 	uint8_t* code(uint8_t* code) const;
 
 	void print(uint32_t x) const;
+
+	uint32_t code_25() const {
+		return ((uint32_t)voc << 12) | eoc;
+	}
 };
+
+const uint32_t* x_vprm();
+const uint32_t* x_vorm();
+const uint64_t* x_eprm();
+const uint32_t* x_eorm();
