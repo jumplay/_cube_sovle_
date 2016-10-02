@@ -38,3 +38,6 @@ struct time_count {
 		printf("%s%.3f\n", s, t_s);
 	}
 };
+
+void get_optimal_8();
+void get_optimal_12();
