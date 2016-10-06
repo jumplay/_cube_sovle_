@@ -478,7 +478,7 @@ inline uint64_t edge_pos_rotate(uint64_t code, uint32_t rx) {
 
 void create_edge_pos_rotation_map() {
 	_EPRM = new uint64_t[1 << 21];
-	uint16_t code16;
+	uint32_t code16;
 	uint32_t code32;
 	uint8_t* code_0 = (uint8_t*)& code32;
 	uint8_t* code_1 = code_0 + 1;

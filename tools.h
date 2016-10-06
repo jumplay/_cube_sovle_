@@ -41,3 +41,8 @@ struct time_count {
 
 void get_optimal_8();
 void get_optimal_12();
+
+uint32_t voc_x2o(uint32_t x);
+uint32_t eoc_x2o(uint32_t x);
+uint32_t vpc_x2o(uint32_t x);
+uint64_t epc_x2o(uint64_t x);

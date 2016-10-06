@@ -51,11 +51,7 @@ struct ccd_t {
 	uint16_t nil;
 	uint64_t epc;
 
-	ccd_t(): vpc(0), voc(0), eoc(0) {
-		epc =	(0ul <<  0) | (1ul <<  4) | (2ul  <<  8) | (3ul  << 12) |	\
-				(4ul << 16) | (5ul << 20) | (6ul  << 24) | (7ul  << 28) |	\
-				(8ul << 32) | (9ul << 36) | (10ul << 40) | (11ul << 44);
-	}
+	ccd_t(): vpc(0), voc(0), eoc(0), epc(0xBA9876543210ul) {}
 
 	ccd_t(ccd_t& xx) {
 		((uint64_t*)this)[0] = ((uint64_t*)&xx)[0];
